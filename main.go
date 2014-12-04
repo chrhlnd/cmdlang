@@ -1,8 +1,9 @@
 package main
 
 import (
-	"bytes"
+	"flag"
 	"fmt"
+	"os"
 )
 
 var DATA = `
@@ -29,17 +30,30 @@ someaction
 `
 
 func main() {
-	buf := bytes.NewBufferString(DATA)
+	flag.Parse()
 
-	scanner := NewScanner(buf)
+	for _, f := range flag.Args() {
+		fmt.Print(">>> ---------------- ")
+		fmt.Println(f)
 
-	var tok TokInfo
+		file, err := os.Open(f)
+		if err != nil {
+			fmt.Print("ERR: ")
+			fmt.Println(err)
+		} else {
+			scanner := NewScanner(file)
 
-	for tok = scanner.Scan(); tok.Token != TOK_EOF; tok = scanner.Scan() {
-		fmt.Printf("%v\n", tok)
+			var tok TokInfo
+
+			for tok = scanner.Scan(); tok.Token != TOK_EOF; tok = scanner.Scan() {
+				fmt.Printf("%v\n", tok)
+			}
+			fmt.Printf("%v\n", tok)
+
+			file.Close()
+		}
+
+		fmt.Println(f)
+		fmt.Println("<<< ---------------- ")
 	}
-	fmt.Printf("%v\n", tok)
-
-	fmt.Println(DATA)
-
 }

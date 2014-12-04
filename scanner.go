@@ -161,6 +161,7 @@ func (s *Scanner) unread() {
 		s.lineHist = s.lineHist[0 : len(s.lineHist)-1]
 	} else {
 		s.ps.col--
+		s.ps.pos--
 	}
 	s.r.UnreadRune()
 }
@@ -169,10 +170,10 @@ func (s *Scanner) Scan() TokInfo {
 	ch := s.read()
 
 	if ch == EOF {
-		return TokInfo{Lstart: s.ps.line,
-			Cstart:  s.ps.col,
+		return TokInfo{Lstart: s.ps.line + 1,
+			Cstart:  s.ps.col + 1,
 			Pstart:  s.ps.pos,
-			Lend:    s.ps.line,
+			Lend:    s.ps.line + 1,
 			Cend:    s.ps.col,
 			Pend:    s.ps.pos,
 			Token:   TOK_EOF,
@@ -208,20 +209,20 @@ func (s *Scanner) scanBlock() TokInfo {
 	buf.WriteRune(ch)
 
 	if ch == '(' {
-		return TokInfo{Lstart: pbegin.line,
-			Cstart:  pbegin.col,
+		return TokInfo{Lstart: pbegin.line + 1,
+			Cstart:  pbegin.col + 1,
 			Pstart:  pbegin.pos,
-			Lend:    s.ps.line,
+			Lend:    s.ps.line + 1,
 			Cend:    s.ps.col,
 			Pend:    s.ps.pos,
 			Token:   TOK_BLOCK_START,
 			Literal: buf.Bytes()}
 	}
 
-	return TokInfo{Lstart: pbegin.line,
-		Cstart:  pbegin.col,
+	return TokInfo{Lstart: pbegin.line + 1,
+		Cstart:  pbegin.col + 1,
 		Pstart:  pbegin.pos,
-		Lend:    s.ps.line,
+		Lend:    s.ps.line + 1,
 		Cend:    s.ps.col,
 		Pend:    s.ps.pos,
 		Token:   TOK_BLOCK_END,
@@ -264,10 +265,10 @@ func (s *Scanner) scanLiteral() TokInfo {
 		s.unread()
 	}
 
-	return TokInfo{Lstart: pbegin.line,
-		Cstart:  pbegin.col,
+	return TokInfo{Lstart: pbegin.line + 1,
+		Cstart:  pbegin.col + 1,
 		Pstart:  pbegin.pos,
-		Lend:    s.ps.line,
+		Lend:    s.ps.line + 1,
 		Cend:    s.ps.col,
 		Pend:    s.ps.pos,
 		Token:   TOK_IDENT,
@@ -294,10 +295,10 @@ func (s *Scanner) scanComment() TokInfo {
 	for ch = s.read(); ch != EOF; ch = s.read() {
 		if ch == '\n' && !isBlock {
 			buf.WriteRune(ch)
-			return TokInfo{Lstart: pbegin.line,
-				Cstart:  pbegin.col,
+			return TokInfo{Lstart: pbegin.line + 1,
+				Cstart:  pbegin.col + 1,
 				Pstart:  pbegin.pos,
-				Lend:    s.ps.line,
+				Lend:    s.ps.line + 1,
 				Cend:    s.ps.col,
 				Pend:    s.ps.pos,
 				Token:   TOK_COMMENT_EOL,
@@ -305,10 +306,10 @@ func (s *Scanner) scanComment() TokInfo {
 		}
 		if ch == '#' && last == ')' && isBlock {
 			buf.WriteRune(ch)
-			return TokInfo{Lstart: pbegin.line,
-				Cstart:  pbegin.col,
+			return TokInfo{Lstart: pbegin.line + 1,
+				Cstart:  pbegin.col + 1,
 				Pstart:  pbegin.pos,
-				Lend:    s.ps.line,
+				Lend:    s.ps.line + 1,
 				Cend:    s.ps.col,
 				Pend:    s.ps.pos,
 				Token:   TOK_COMMENT_BLOCK,
@@ -318,10 +319,10 @@ func (s *Scanner) scanComment() TokInfo {
 		last = ch
 	}
 
-	return TokInfo{Lstart: pbegin.line,
-		Cstart:  pbegin.col,
+	return TokInfo{Lstart: pbegin.line + 1,
+		Cstart:  pbegin.col + 1,
 		Pstart:  pbegin.pos,
-		Lend:    s.ps.line,
+		Lend:    s.ps.line + 1,
 		Cend:    s.ps.col,
 		Pend:    s.ps.pos,
 		Token:   TOK_COMMENT_EOL,
@@ -357,10 +358,10 @@ func (s *Scanner) scanWhitespace() TokInfo {
 			for i := 0; i < back; i++ {
 				s.unread()
 			}
-			return TokInfo{Lstart: pbegin.line,
-				Cstart:  pbegin.col,
+			return TokInfo{Lstart: pbegin.line + 1,
+				Cstart:  pbegin.col + 1,
 				Pstart:  pbegin.pos,
-				Lend:    s.ps.line,
+				Lend:    s.ps.line + 1,
 				Cend:    s.ps.col,
 				Pend:    s.ps.pos,
 				Token:   TOK_EOC,
@@ -371,10 +372,10 @@ func (s *Scanner) scanWhitespace() TokInfo {
 		break // normal char here
 	}
 
-	return TokInfo{Lstart: pbegin.line,
-		Cstart:  pbegin.col,
+	return TokInfo{Lstart: pbegin.line + 1,
+		Cstart:  pbegin.col + 1,
 		Pstart:  pbegin.pos,
-		Lend:    s.ps.line,
+		Lend:    s.ps.line + 1,
 		Cend:    s.ps.col,
 		Pend:    s.ps.pos,
 		Token:   TOK_WS,
