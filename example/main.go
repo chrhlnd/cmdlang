@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	"github.com/chrhlnd/cmdlang"
 )
 
 var DATA = `
@@ -41,11 +43,11 @@ func main() {
 			fmt.Print("ERR: ")
 			fmt.Println(err)
 		} else {
-			scanner := NewScanner(file)
+			scanner := cmdlang.NewScanner(file)
 
-			var tok TokInfo
+			var tok cmdlang.TokInfo
 
-			for tok = scanner.Scan(); tok.Token != TOK_EOF; tok = scanner.Scan() {
+			for tok = scanner.Scan(); tok.Token != cmdlang.TOK_EOF; tok = scanner.Scan() {
 				fmt.Printf("%v\n", tok)
 			}
 			fmt.Printf("%v\n", tok)
