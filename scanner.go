@@ -241,15 +241,19 @@ func (s *Scanner) scanLiteral() TokInfo {
 	}
 
 	consumeLast := false
+	escaped := false
+	useEsc := false
 
 	switch ch {
 	case '\'':
 		consumeLast = true
+		useEsc = true
 		literalDone = func(check rune) bool {
 			return check == '\''
 		}
 	case '"':
 		consumeLast = true
+		useEsc = true
 		literalDone = func(check rune) bool {
 			return check == '"'
 		}
@@ -257,8 +261,20 @@ func (s *Scanner) scanLiteral() TokInfo {
 		buf.WriteRune(ch)
 	}
 
-	for ch = s.read(); ch != EOF && !literalDone(ch); ch = s.read() {
-		buf.WriteRune(ch)
+	if useEsc {
+		for ch = s.read(); ch != EOF && (!literalDone(ch) || escaped); ch = s.read() {
+			switch ch {
+			case '\\':
+				escaped = true
+			default:
+				escaped = false
+				buf.WriteRune(ch)
+			}
+		}
+	} else {
+		for ch = s.read(); ch != EOF && !literalDone(ch); ch = s.read() {
+			buf.WriteRune(ch)
+		}
 	}
 
 	if !consumeLast {
