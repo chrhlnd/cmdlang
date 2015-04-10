@@ -265,7 +265,12 @@ func (s *Scanner) scanLiteral() TokInfo {
 		for ch = s.read(); ch != EOF && (!literalDone(ch) || escaped); ch = s.read() {
 			switch ch {
 			case '\\':
-				escaped = true
+				if escaped {
+					buf.WriteRune(ch)
+					escaped = false
+				} else {
+					escaped = true
+				}
 			default:
 				escaped = false
 				buf.WriteRune(ch)
