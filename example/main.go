@@ -48,7 +48,7 @@ func main() {
 			var tok cmdlang.TokInfo
 
 			for tok = scanner.Scan(); tok.Token != cmdlang.TOK_EOF; tok = scanner.Scan() {
-				fmt.Printf("%v\n", tok)
+				fmt.Printf("%v %v\n", tok, string(tok.Literal))
 			}
 			fmt.Printf("%v\n", tok)
 

@@ -130,6 +130,8 @@ type Scanner struct {
 	r        *bufio.Reader
 	ps       posState
 	lineHist []posState
+
+	resume func() TokInfo
 }
 
 func NewScanner(r io.Reader) *Scanner {
@@ -167,6 +169,12 @@ func (s *Scanner) unread() {
 }
 
 func (s *Scanner) Scan() TokInfo {
+	if s.resume != nil {
+		call := s.resume
+		s.resume = nil
+		return call()
+	}
+
 	ch := s.read()
 
 	if ch == EOF {
@@ -313,7 +321,7 @@ func (s *Scanner) scanComment() TokInfo {
 
 	last := rune(0)
 
-	for ch = s.read(); ch != EOF; ch = s.read() {
+	for ; ch != EOF; ch = s.read() {
 		if ch == '\n' && !isBlock {
 			buf.WriteRune(ch)
 			return TokInfo{Lstart: pbegin.line + 1,
@@ -352,55 +360,96 @@ func (s *Scanner) scanComment() TokInfo {
 
 // scanWhitespace eat all whitespace, \n in is special its only whitespace if the next non ws char is a CONTINUE char
 func (s *Scanner) scanWhitespace() TokInfo {
-	var buf bytes.Buffer
-
 	pbegin := s.ps
 
 	crPOS := -1
 
+	buf := bytes.Buffer{}
+
+	tokens := make([]TokInfo, 0)
+
+	crToken := TokInfo{}
+
 	for ch := s.read(); ch != EOF; ch = s.read() {
-		if isWhite(ch) {
+		if isWhite(ch) { // eat whitespace
 			buf.WriteRune(ch)
 			if ch == '\n' {
+				crToken.Cstart = pbegin.col + 1
+				crToken.Pstart = pbegin.pos
+				crToken.Lend = s.ps.line + 1
+				crToken.Cend = s.ps.col
+				crToken.Pend = s.ps.pos
+				crToken.Token = TOK_EOC
+				crToken.Literal = buf.Bytes()[0:]
+
 				crPOS = s.ps.pos
 			}
 			continue
 		}
 
-		if !isWhite(ch) && crPOS > -1 && ch == CONTINUE {
-			buf.WriteRune(ch)
-			crPOS = -1
+		if isComment(ch) {
+			s.unread()
+			tokens = append(tokens, s.scanComment())
 			continue
 		}
 
-		if crPOS > -1 {
-			back := s.ps.pos - crPOS
-			// rollback to the carrage return this is actually a command delimiter
-			for i := 0; i < back; i++ {
-				s.unread()
+		if ch == CONTINUE {
+			if crPOS > -1 { // eat up the , as a whitespace
+				buf.WriteRune(ch)
+				crPOS = -1
+				continue
 			}
-			return TokInfo{Lstart: pbegin.line + 1,
+		}
+
+		s.unread()
+		if crPOS > -1 {
+			// we hit a non whitespace and we had a carrige return which means the last cr terminated the white space
+			// prepend the CR token
+
+			newtokens := make([]TokInfo, 1+len(tokens))
+			newtokens[0] = crToken
+			for i, v := range tokens {
+				newtokens[i+1] = v
+			}
+			tokens = newtokens
+		} else {
+			tokens = append(tokens, TokInfo{Lstart: pbegin.line + 1,
 				Cstart:  pbegin.col + 1,
 				Pstart:  pbegin.pos,
 				Lend:    s.ps.line + 1,
 				Cend:    s.ps.col,
 				Pend:    s.ps.pos,
-				Token:   TOK_EOC,
-				Literal: buf.Bytes()[0 : buf.Len()-back]}
+				Token:   TOK_WS,
+				Literal: buf.Bytes()})
 		}
 
-		s.unread()
 		break // normal char here
 	}
 
-	return TokInfo{Lstart: pbegin.line + 1,
-		Cstart:  pbegin.col + 1,
-		Pstart:  pbegin.pos,
-		Lend:    s.ps.line + 1,
-		Cend:    s.ps.col,
-		Pend:    s.ps.pos,
-		Token:   TOK_WS,
-		Literal: buf.Bytes()}
+	if len(tokens) == 0 {
+		tokens = append(tokens, TokInfo{Lstart: s.ps.line + 1,
+			Cstart:  pbegin.col + 1,
+			Pstart:  pbegin.pos,
+			Lend:    s.ps.line + 1,
+			Cend:    s.ps.col,
+			Pend:    s.ps.pos,
+			Token:   TOK_WS,
+			Literal: buf.Bytes()})
+	}
+
+	s.resume = makeDrain(s, tokens)
+	return s.resume()
+}
+
+func makeDrain(s *Scanner, list []TokInfo) func() TokInfo {
+	return func() TokInfo {
+		if len(list) > 1 {
+			s.resume = makeDrain(s, list[1:])
+		} else {
+			s.resume = nil
+		}
+		return list[0]
+	}
 }
 
 func isWhite(ch rune) bool {

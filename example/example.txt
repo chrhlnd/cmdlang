@@ -19,13 +19,18 @@ someaction
 	#( something )#
 	
 
-superdata
-	,(somekey withval)
-	,(thiskey hasmoredata)
-	,(anotherkey withdata)
-	,(superkey (somedata
-					,(subkey value)
-					,(subkeyagain yes)
-					,(maybe data)
-				)
-	)
+	superdata
+		,(somekey withval)
+		,(thiskey hasmoredata)
+		,(anotherkey withdata)
+		#,commenting this one
+		,(superkey (somedata
+			,(subkey value)
+			,(subkeyagain yes)
+			,(maybe data)
+		)
+)
+
+this
+#is
+confusing?
